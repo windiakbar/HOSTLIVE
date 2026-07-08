@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live Tracker Host | Sistem Pencatat Sesi Live</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        glass: 'rgba(255, 255, 255, 0.1)',
+                        glassBorder: 'rgba(255, 255, 255, 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom Scrollbar for sleek UI */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        
+        /* Glassmorphism utility classes */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7); /* slate-800 with opacity */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-glass {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .input-glass:focus {
+            outline: none;
+            border-color: #8b5cf6; /* violet-500 */
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Prevent zooming on input focus in iOS */
+        input[type="text"], input[type="number"], input[type="password"], select, textarea {
+            font-size: 16px;
+        }
+
+        /* Pulse animation for Live Timer */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .live-indicator {
+            animation: pulse-ring 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-violet-950 text-white min-h-screen overflow-x-hidden selection:bg-violet-500/30">
+
+    <!-- Global Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-violet-500 mb-4"></div>
+        <p id="loading-text" class="text-violet-200 font-medium">Memproses data...</p>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 w-[90%] max-w-md pointer-events-none"></div>
+
+    <!-- Main Mobile Container -->
+    <main class="w-full max-w-md mx-auto min-h-screen relative p-4 flex flex-col">
+        
+        <!-- 1. VIEW: LANDING PAGE -->
+        <section id="view-landing" class="flex-1 flex flex-col items-center justify-center space-y-8 animate-[fadeIn_0.5s_ease-out]">
+            <div class="text-center space-y-2">
+                <div class="w-24 h-24 mx-auto bg-gradient-to-tr from-violet-600 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/30 mb-6 transform rotate-3">
+                    <i class="fa-solid fa-video text-4xl text-white -rotate-3"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-tight">Live Tracker</h1>
+                <p class="text-slate-400 text-sm">Sistem Pencatat Sesi Host Live</p>
+            </div>
+
+            <div class="w-full space-y-4 w-full">
+                <button onclick="prepareHostLogin()" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-violet-600/20 transition transform active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-user-headset"></i> Login Host Live
+                </button>
+                <button onclick="switchView('view-admin-login')" class="w-full bg-glass border border-glassBorder hover:bg-white/20 text-white font-semibold py-4 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-shield-halved"></i> Login Admin
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. VIEW: ADMIN LOGIN -->
+        <section id="view-admin-login" class="hidden flex-1 flex flex-col justify-center animate-[fadeIn_0.3s_ease-out]">
+            <button onclick="switchView('view-landing')" class="absolute top-6 left-4 text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+            </button>
+            <div class="glass-panel rounded-2xl p-8 space-y-6">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-lock text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Otorisasi Admin</h2>
+                    <p class="text-sm text-slate-400 mt-1">Masukkan PIN 6 Digit</p>
+                </div>
+                <input type="password" id="admin-pin" placeholder="••••••" maxlength="6" class="w-full input-glass rounded-xl px-4 py-4 text-center text-2xl tracking-widest font-mono" inputmode="numeric">
+                <button onclick="loginAdmin()" class="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 font-bold py-4 rounded-xl shadow-lg transition active:scale-95">
+                    Masuk Dashboard
+                </button>
+            </div>
+        </section>
+
+        <!-- 3. VIEW: ADMIN DASHBOARD -->
+        <section id="view-admin-dashboard" class="hidden flex-1 flex flex-col py-4 animate-[fadeIn_0.3s_ease-out]">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-rose-400">Admin Panel</h2>
+                    <p class="text-xs text-slate-400">Kelola Data Host</p>
+                </div>
+                <button onclick="logoutAdmin()" class="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm transition">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar
+                </button>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 mb-6">
+                <h3 class="font-bold border-b border-white/10 pb-2 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-violet-400"></i> Tambah Host Baru
+                </h3>
+                <form id="form-add-host" class="space-y-3" onsubmit="event.preventDefault(); submitNewHost();">
+                    <input type="text" id="add-nama" placeholder="Nama Lengkap" required class="w-full input-glass rounded-lg px-3 py-2 text-sm">
+                    <input type="text" id="add-wa" placeholder="Nomor WhatsApp" required class="w-full input-glass rounded-lg px-3 py-2 text-sm" inputmode="tel">
+                    <div class="flex gap-3">
+                        <input type="text" id="add-user" placeholder="Username" required class="w-1/2 input-glass rounded-lg px-3 py-2 text-sm">
+                        <input type="password" id="add-pass" placeholder="Password" required class="w-1/2 input-glass rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex gap-3">
+                        <input type="date" id="add-dob" required class="w-1/2 input-glass rounded-lg px-3 py-2 text-sm text-slate-300">
+                        <input type="text" id="add-bank" placeholder="Rekening Bank (Misal: BCA 123...)" required class="w-1/2 input-glass rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <textarea id="add-alamat" placeholder="Alamat Lengkap" required rows="2" class="w-full input-glass rounded-lg px-3 py-2 text-sm"></textarea>
+                    
+                    <button type="submit" class="w-full bg-violet-600 hover:bg-violet-500 font-semibold py-2.5 rounded-lg transition active:scale-95 text-sm mt-2">
+                        Simpan Host ke Database
+                    </button>
+                </form>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                    <h3 class="font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-users text-emerald-400"></i> Daftar Host
+                    </h3>
+                    <button onclick="loadAdminHosts()" class="text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+                <div id="admin-host-list" class="space-y-2 overflow-y-auto max-h-[300px] flex-1">
+                    <p class="text-center text-slate-500 text-sm mt-4">Klik refresh untuk memuat data.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. VIEW: HOST LOGIN -->
+        <section id="view-host-login" class="hidden flex-1 flex flex-col justify-center animate-[fadeIn_0.3s_ease-out]">
+            <button onclick="switchView('view-landing')" class="absolute top-6 left-4 text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+            </button>
+            <div class="glass-panel rounded-2xl p-8 space-y-6 relative overflow-hidden">
+                <!-- Decoration -->
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-violet-600/30 rounded-full blur-2xl"></div>
+                
+                <div class="text-center relative z-10">
+                    <div class="w-16 h-16 mx-auto bg-violet-500/20 text-violet-400 rounded-full flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-headset text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Login Host</h2>
+                    <p class="text-sm text-slate-400 mt-1">Pilih akun Anda untuk mulai sesi</p>
+                </div>
+                
+                <div class="space-y-4 relative z-10">
+                    <div class="relative">
+                        <select id="login-host-username" class="w-full input-glass rounded-xl px-4 py-3 appearance-none text-white font-medium cursor-pointer">
+                            <option value="" disabled selected>Pilih Username Host...</option>
+                            <!-- Options akan diisi via JS -->
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                    </div>
+                    <input type="password" id="login-host-password" placeholder="Password" class="w-full input-glass rounded-xl px-4 py-3">
+                    <button onclick="loginHost()" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 font-bold py-3.5 rounded-xl shadow-lg transition active:scale-95">
+                        Masuk
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. VIEW: HOST DASHBOARD (PANEL SESI) -->
+        <section id="view-host-dashboard" class="hidden flex-1 flex flex-col animate-[fadeIn_0.3s_ease-out] pb-20">
+            <!-- Header Profile -->
+            <div class="glass-panel rounded-2xl p-4 mb-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-inner">
+                        <i class="fa-solid fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <h2 id="dash-host-name" class="font-bold text-lg leading-tight">Nama Host</h2>
+                        <p id="dash-host-bank" class="text-xs text-slate-400"><i class="fa-solid fa-building-columns mr-1"></i> BCA</p>
+                    </div>
+                </div>
+                <button onclick="logoutHost()" class="w-10 h-10 rounded-full bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition text-slate-400">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+
+            <!-- Timer & Status Center -->
+            <div class="flex-1 flex flex-col items-center justify-center mb-8 relative">
+                <!-- Status Badge -->
+                <div id="live-status-badge" class="absolute top-0 px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold tracking-wider text-slate-400 transition-colors duration-300">
+                    <span class="mr-2 inline-block w-2 h-2 rounded-full bg-slate-500" id="live-dot"></span>
+                    <span id="live-status-text">OFFLINE</span>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="text-center mt-12 mb-10">
+                    <h1 id="live-timer-display" class="text-6xl font-black tracking-tighter tabular-nums text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-sm">00:00:00</h1>
+                    <p class="text-slate-500 text-sm mt-2 font-medium">DURASI SESI</p>
+                </div>
+
+                <!-- Big Action Buttons -->
+                <div class="w-full px-4 relative h-32 flex justify-center items-center">
+                    
+                    <!-- START BUTTON -->
+                    <button id="btn-start-live" onclick="startLiveSession()" class="absolute w-4/5 h-20 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl shadow-[0_0_40px_rgba(16,185,129,0.3)] border border-emerald-400/50 flex items-center justify-center gap-3 text-xl font-bold transition-all transform active:scale-95 hover:scale-105 z-10">
+                        <i class="fa-solid fa-play text-2xl"></i> MULAI LIVE
+                    </button>
+
+                    <!-- STOP BUTTON (Hidden initially) -->
+                    <button id="btn-stop-live" onclick="openEndSessionModal()" class="absolute w-4/5 h-20 bg-gradient-to-r from-rose-600 to-red-600 rounded-2xl shadow-[0_0_40px_rgba(225,29,72,0.4)] border border-rose-400/50 flex items-center justify-center gap-3 text-xl font-bold transition-all transform active:scale-95 hover:scale-105 z-0 opacity-0 scale-90 pointer-events-none">
+                        <i class="fa-solid fa-stop text-2xl"></i> SELESAI SESI
+                    </button>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. MODAL: END SESSION / LAPORAN -->
+        <div id="modal-end-session" class="fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-xl hidden flex-col transition-all duration-300 opacity-0 translate-y-10">
+            <div class="flex justify-between items-center p-4 border-b border-white/10 bg-slate-900 sticky top-0 z-50">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-flag-checkered text-rose-400"></i> Laporan Sesi</h3>
+                <button onclick="closeEndSessionModal()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 pb-24 space-y-6">
+                <!-- Info Peringatan -->
+                <div class="bg-indigo-500/20 border border-indigo-500/30 rounded-xl p-3 flex gap-3 text-indigo-200 text-sm">
+                    <i class="fa-solid fa-circle-info mt-0.5"></i>
+                    <p>Isi data performa dengan jujur. Lampirkan screenshot atau foto dashboard seller (Shopee/TikTok) sebagai bukti validasi.</p>
+                </div>
+
+                <!-- Input Shopee -->
+                <div class="glass-panel rounded-xl p-4 border-t-4 border-t-orange-500">
+                    <h4 class="font-bold text-orange-400 mb-3 flex items-center gap-2"><i class="fa-solid fa-bag-shopping"></i> SHOPEE</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Produk Terjual (Qty)</label>
+                            <input type="number" id="report-shopee-qty" placeholder="0" class="w-full input-glass rounded-lg px-3 py-2 font-mono text-lg" inputmode="numeric">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Total GMV (Rp)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">Rp</span>
+                                <input type="text" id="report-shopee-gmv" placeholder="0" class="w-full input-glass rounded-lg pl-10 pr-3 py-2 font-mono text-lg" oninput="formatRupiahInput(this)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input TikTok -->
+                <div class="glass-panel rounded-xl p-4 border-t-4 border-t-slate-200">
+                    <h4 class="font-bold text-white mb-3 flex items-center gap-2"><i class="fa-brands fa-tiktok"></i> TIKTOK</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Produk Terjual (Qty)</label>
+                            <input type="number" id="report-tiktok-qty" placeholder="0" class="w-full input-glass rounded-lg px-3 py-2 font-mono text-lg" inputmode="numeric">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Total GMV (Rp)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">Rp</span>
+                                <input type="text" id="report-tiktok-gmv" placeholder="0" class="w-full input-glass rounded-lg pl-10 pr-3 py-2 font-mono text-lg" oninput="formatRupiahInput(this)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bukti Foto/Screenshot -->
+                <div class="glass-panel rounded-xl p-4 space-y-3">
+                    <h4 class="font-bold text-slate-200 flex items-center gap-2"><i class="fa-solid fa-camera text-violet-400"></i> Bukti Screenshot / Kamera</h4>
+                    
+                    <input type="file" id="report-image" accept="image/*" capture="environment" class="hidden" onchange="previewImage(event)">
+                    
+                    <div id="image-preview-container" class="hidden relative w-full h-40 rounded-lg overflow-hidden border border-white/20 bg-slate-800">
+                        <img id="image-preview" class="w-full h-full object-cover" src="" alt="Preview">
+                        <button onclick="clearImage()" class="absolute top-2 right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash text-sm"></i></button>
+                    </div>
+
+                    <button id="btn-trigger-camera" onclick="document.getElementById('report-image').click()" class="w-full bg-slate-700 hover:bg-slate-600 border border-dashed border-slate-400 text-slate-300 py-4 rounded-xl flex flex-col items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                        <span class="text-sm font-medium">Ambil Foto / Upload Screenshot</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submit Laporan Footer -->
+            <div class="p-4 bg-slate-900 border-t border-white/10 pb-8 sticky bottom-0 z-50">
+                <button onclick="submitSessionReport()" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] active:scale-95 transition-transform flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> Kirim Laporan & Akhiri Sesi
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- SCRIPTS -->
+    <script>
+        /**
+         * ==========================================
+         * KONFIGURASI APLIKASI & GOOGLE APPS SCRIPT
+         * ==========================================
+         */
+        
+        // PENTING: Ganti URL di bawah dengan Web App URL dari Google Apps Script (Deploy as Web App)
+        // Di backend GAS, siapkan fungsi doPost(e) yang memproses action: 'getHosts', 'addHost', 'logStart', 'logEnd'.
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbznR5B5YmmAgsXziKfjOz0HJyOSsWKKZY3wqZNmDBUk-irupLAvqr1zufkuXHGcrvA/exec'; 
+        
+        const ADMIN_PIN = '138080';
+        
+        // Variabel State Global
+        let currentHost = null; // Menyimpan data host yang sedang login
+        let liveTimerInterval = null;
+        let sessionStartTime = null; // Date object
+        let currentBase64Image = null;
+
+        /**
+         * ==========================================
+         * UTILITIES & UI HELPERS
+         * ==========================================
+         */
+
+        // Sistem Navigasi Antar Layar
+        function switchView(viewId) {
+            const views = ['view-landing', 'view-admin-login', 'view-admin-dashboard', 'view-host-login', 'view-host-dashboard'];
+            views.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === viewId) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
+        // Loading Indicator
+        function showLoading(text = 'Memproses data...') {
+            document.getElementById('loading-text').innerText = text;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // Toast Notification System (Bisa ditumpuk)
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Konfigurasi warna berdasar tipe
+            let bgClass = 'bg-slate-800 border-slate-600 text-white';
+            let icon = '<i class="fa-solid fa-info-circle text-blue-400"></i>';
+            if(type === 'success') { bgClass = 'bg-emerald-900 border-emerald-500 text-emerald-100'; icon = '<i class="fa-solid fa-check-circle text-emerald-400"></i>'; }
+            if(type === 'error') { bgClass = 'bg-rose-900 border-rose-500 text-rose-100'; icon = '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>'; }
+            
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg transform transition-all duration-300 translate-y-[-20px] opacity-0 ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="text-sm font-medium">${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Animasi Masuk
+            setTimeout(() => { toast.classList.remove('translate-y-[-20px]', 'opacity-0'); }, 10);
+            
+            // Hapus otomatis setelah 3 detik
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Fetch Wrapper untuk Google Apps Script
+        // Menggunakan method POST dan plain/text untuk menghindari isu CORS preflight.
+        async function fetchFromGas(action, payload) {
+            // Hapus simulasi karena GAS URL sudah di-set ke URL aktif
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: action, data: payload })
+                });
+                
+                // Menangani error dari network atau CORS sebelum membaca JSON
+                if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                if(result.status === 'success') {
+                    return result.data;
+                } else {
+                    throw new Error(result.message || 'Terjadi kesalahan di server backend');
+                }
+            } catch (error) {
+                console.error("API Error Detail:", error);
+                // Tambahkan pesan yang lebih spesifik jika terjadi error network (seperti diblokir browser atau typo URL)
+                if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
+                     throw new Error("Gagal menghubungi server. Periksa koneksi internet atau status URL Google Apps Script.");
+                }
+                throw error;
+            }
+        }
+
+        // Format angka ke format Rupiah saat mengetik
+        function formatRupiahInput(input) {
+            let value = input.value.replace(/[^,\d]/g, '').toString();
+            let split = value.split(',');
+            let sisa = split[0].length % 3;
+            let rupiah = split[0].substr(0, sisa);
+            let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+            
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+            
+            rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+            input.value = rupiah;
+        }
+
+        // Ubah string Rupiah kembali ke angka (Integer)
+        function cleanNumber(str) {
+            if(!str) return 0;
+            return parseInt(str.replace(/\./g, ''), 10) || 0;
+        }
+
+        /**
+         * ==========================================
+         * LOGIKA ADMIN
+         * ==========================================
+         */
+
+        function loginAdmin() {
+            const pin = document.getElementById('admin-pin').value;
+            if (pin === ADMIN_PIN) {
+                document.getElementById('admin-pin').value = '';
+                showToast('Login Admin Berhasil', 'success');
+                switchView('view-admin-dashboard');
+                loadAdminHosts(); // Load data di background
+            } else {
+                showToast('PIN Admin Salah!', 'error');
+            }
+        }
+
+        function logoutAdmin() {
+            switchView('view-landing');
+            showToast('Keluar dari panel Admin', 'info');
+        }
+
+        async function loadAdminHosts() {
+            const listEl = document.getElementById('admin-host-list');
+            listEl.innerHTML = '<div class="text-center text-slate-500 text-sm mt-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data...</div>';
+            
+            try {
+                const hosts = await fetchFromGas('getHosts', {});
+                if(hosts.length === 0) {
+                    listEl.innerHTML = '<p class="text-center text-slate-500 text-sm mt-4">Belum ada data Host.</p>';
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                hosts.forEach(host => {
+                    listEl.innerHTML += `
+                        <div class="bg-slate-800/50 border border-white/5 rounded-lg p-3 flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-sm text-slate-200">${host.nama}</p>
+                                <p class="text-xs text-slate-400">@${host.username} • ${host.bank}</p>
+                            </div>
+                            <div class="bg-violet-900/50 text-violet-300 text-[10px] px-2 py-1 rounded border border-violet-500/30">
+                                Aktif
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                listEl.innerHTML = `<p class="text-center text-rose-500 text-sm mt-4">Gagal memuat: ${error.message}</p>`;
+            }
+        }
+
+        async function submitNewHost() {
+            const newHost = {
+                nama: document.getElementById('add-nama').value,
+                wa: document.getElementById('add-wa').value,
+                username: document.getElementById('add-user').value,
+                pass: document.getElementById('add-pass').value,
+                dob: document.getElementById('add-dob').value,
+                bank: document.getElementById('add-bank').value,
+                alamat: document.getElementById('add-alamat').value,
+            };
+
+            showLoading('Menyimpan Host Baru...');
+            try {
+                await fetchFromGas('addHost', newHost);
+                document.getElementById('form-add-host').reset();
+                showToast('Berhasil menambahkan host!', 'success');
+                loadAdminHosts();
+            } catch (error) {
+                showToast(`Gagal menyimpan: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * ==========================================
+         * LOGIKA HOST
+         * ==========================================
+         */
+
+        async function prepareHostLogin() {
+            switchView('view-host-login');
+            const selectEl = document.getElementById('login-host-username');
+            
+            // Cek apakah data sudah ada (supaya tidak fetch berulang jika sudah di load)
+            if(selectEl.options.length > 1) return; 
+
+            selectEl.innerHTML = '<option value="" disabled selected>Memuat daftar host...</option>';
+            
+            try {
+                const hosts = await fetchFromGas('getHosts', {});
+                selectEl.innerHTML = '<option value="" disabled selected>Pilih Username Host...</option>';
+                hosts.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h.username;
+                    // Simpan stringified data untuk dipakai saat login tanpa fetch ulang
+                    opt.setAttribute('data-full', JSON.stringify(h)); 
+                    opt.innerText = h.nama + ` (@${h.username})`;
+                    selectEl.appendChild(opt);
+                });
+            } catch (error) {
+                selectEl.innerHTML = '<option value="" disabled selected>Gagal memuat. Periksa internet.</option>';
+                showToast('Gagal memuat daftar host', 'error');
+            }
+        }
+
+        function loginHost() {
+            const selectEl = document.getElementById('login-host-username');
+            const passwordEl = document.getElementById('login-host-password');
+            
+            if(selectEl.selectedIndex <= 0) {
+                showToast('Pilih username Anda!', 'error');
+                return;
+            }
+            if(!passwordEl.value) {
+                showToast('Masukkan password!', 'error');
+                return;
+            }
+
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            const hostData = JSON.parse(selectedOption.getAttribute('data-full'));
+
+            // Validasi Password
+            if(passwordEl.value !== hostData.pass) {
+                showToast('Password salah!', 'error');
+                return;
+            }
+
+            // Login Sukses
+            currentHost = hostData;
+            document.getElementById('login-host-password').value = '';
+            
+            // Setup UI Dashboard
+            document.getElementById('dash-host-name').innerText = currentHost.nama;
+            document.getElementById('dash-host-bank').innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${currentHost.bank}`;
+            
+            showToast(`Selamat datang, ${currentHost.nama}!`, 'success');
+            switchView('view-host-dashboard');
+
+            // Cek status sesi (Resume dari LocalStorage)
+            checkActiveSession();
+        }
+
+        function logoutHost() {
+            if(sessionStartTime) {
+                showToast('Selesaikan sesi Live terlebih dahulu!', 'error');
+                return;
+            }
+            currentHost = null;
+            switchView('view-landing');
+        }
+
+        /**
+         * ==========================================
+         * LOGIKA SESI LIVE (TIMER & LOCALSTORAGE)
+         * ==========================================
+         */
+
+        const getStorageKey = () => `live_session_${currentHost.username}`;
+
+        function checkActiveSession() {
+            const savedSession = localStorage.getItem(getStorageKey());
+            
+            if(savedSession) {
+                // Sesi Sedang Berjalan (Resume)
+                const sessionData = JSON.parse(savedSession);
+                sessionStartTime = new Date(sessionData.startTime);
+                
+                showToast('Melanjutkan sesi yang sedang berjalan', 'info');
+                setUIStateLive();
+                startTimerLoop();
+            } else {
+                // Tidak ada sesi
+                setUIStateStandby();
+            }
+        }
+
+        async function startLiveSession() {
+            if(!currentHost) return;
+
+            showLoading('Mencatat waktu mulai...');
+            try {
+                // 1. Catat ke server (Opsional, tapi bagus untuk log real-time)
+                // Jika ingin hanya catat di akhir, ini bisa di-skip. Kita asumsikan catat di awal untuk absensi masuk.
+                const logData = {
+                    username: currentHost.username,
+                    nama: currentHost.nama,
+                    waktuMulai: new Date().toISOString()
+                };
+                await fetchFromGas('logStart', logData);
+
+                // 2. Simpan di Local Storage
+                sessionStartTime = new Date();
+                localStorage.setItem(getStorageKey(), JSON.stringify({
+                    startTime: sessionStartTime.toISOString()
+                }));
+
+                // 3. Update UI
+                setUIStateLive();
+                startTimerLoop();
+                showToast('Sesi Live Dimulai!', 'success');
+            } catch (error) {
+                showToast(`Gagal memulai sesi: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function startTimerLoop() {
+            if(liveTimerInterval) clearInterval(liveTimerInterval);
+            
+            updateTimerDisplay(); // update segera
+            liveTimerInterval = setInterval(updateTimerDisplay, 1000); // update tiap detik
+        }
+
+        function updateTimerDisplay() {
+            if(!sessionStartTime) return;
+            
+            const now = new Date();
+            const diffMs = now - sessionStartTime;
+            
+            // Convert to HH:MM:SS
+            let totalSeconds = Math.floor(diffMs / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+            
+            // Padding
+            hours = String(hours).padStart(2, '0');
+            minutes = String(minutes).padStart(2, '0');
+            seconds = String(seconds).padStart(2, '0');
+            
+            document.getElementById('live-timer-display').innerText = `${hours}:${minutes}:${seconds}`;
+        }
+
+        function setUIStateLive() {
+            // Sembunyikan tombol Start, Munculkan tombol Stop
+            const btnStart = document.getElementById('btn-start-live');
+            const btnStop = document.getElementById('btn-stop-live');
+            const badge = document.getElementById('live-status-badge');
+            const dot = document.getElementById('live-dot');
+            const text = document.getElementById('live-status-text');
+
+            btnStart.classList.replace('z-10', 'z-0');
+            btnStart.classList.add('opacity-0', 'scale-90', 'pointer-events-none');
+            
+            btnStop.classList.replace('z-0', 'z-10');
+            btnStop.classList.remove('opacity-0', 'scale-90', 'pointer-events-none');
+
+            // Update Badge ke Hijau
+            badge.className = "absolute top-0 px-4 py-1.5 rounded-full bg-emerald-900/40 border border-emerald-500/50 text-xs font-semibold tracking-wider text-emerald-400 transition-colors duration-300";
+            dot.className = "mr-2 inline-block w-2 h-2 rounded-full bg-emerald-500 live-indicator";
+            text.innerText = "SEDANG LIVE";
+        }
+
+        function setUIStateStandby() {
+            const btnStart = document.getElementById('btn-start-live');
+            const btnStop = document.getElementById('btn-stop-live');
+            const badge = document.getElementById('live-status-badge');
+            const dot = document.getElementById('live-dot');
+            const text = document.getElementById('live-status-text');
+
+            btnStop.classList.replace('z-10', 'z-0');
+            btnStop.classList.add('opacity-0', 'scale-90', 'pointer-events-none');
+            
+            btnStart.classList.replace('z-0', 'z-10');
+            btnStart.classList.remove('opacity-0', 'scale-90', 'pointer-events-none');
+
+            document.getElementById('live-timer-display').innerText = "00:00:00";
+            
+            // Update Badge ke Default
+            badge.className = "absolute top-0 px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-semibold tracking-wider text-slate-400 transition-colors duration-300";
+            dot.className = "mr-2 inline-block w-2 h-2 rounded-full bg-slate-500";
+            text.innerText = "OFFLINE";
+        }
+
+        /**
+         * ==========================================
+         * LOGIKA SELESAI SESI & LAPORAN
+         * ==========================================
+         */
+
+        function openEndSessionModal() {
+            const modal = document.getElementById('modal-end-session');
+            modal.classList.remove('hidden');
+            // Sedikit delay untuk trigger animasi transisi
+            setTimeout(() => {
+                modal.classList.remove('opacity-0', 'translate-y-10');
+            }, 10);
+        }
+
+        function closeEndSessionModal() {
+            const modal = document.getElementById('modal-end-session');
+            modal.classList.add('opacity-0', 'translate-y-10');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Kompresor Gambar agar payload tidak terlalu besar untuk GAS (Max ~2MB direkomendasikan)
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            showLoading('Memproses gambar...');
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    // Resize dan Kompres Gambar pakai Canvas
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Lebar max 800px untuk hemat kuota
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Convert ke JPEG, kualitas 70%
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    currentBase64Image = compressedBase64;
+                    
+                    // Update UI Preview
+                    document.getElementById('image-preview').src = compressedBase64;
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                    document.getElementById('btn-trigger-camera').classList.add('hidden');
+                    
+                    hideLoading();
+                };
+            };
+        }
+
+        function clearImage() {
+            currentBase64Image = null;
+            document.getElementById('report-image').value = '';
+            document.getElementById('image-preview-container').classList.add('hidden');
+            document.getElementById('btn-trigger-camera').classList.remove('hidden');
+        }
+
+        async function submitSessionReport() {
+            // Validasi Input
+            const shopeeQty = cleanNumber(document.getElementById('report-shopee-qty').value);
+            const shopeeGmv = cleanNumber(document.getElementById('report-shopee-gmv').value);
+            const tiktokQty = cleanNumber(document.getElementById('report-tiktok-qty').value);
+            const tiktokGmv = cleanNumber(document.getElementById('report-tiktok-gmv').value);
+
+            if(!currentBase64Image) {
+                showToast('Mohon lampirkan bukti foto/screenshot!', 'error');
+                return;
+            }
+
+            // Hitung Durasi (dalam Menit untuk Database)
+            const endTime = new Date();
+            const durationMs = endTime - sessionStartTime;
+            const durationMinutes = Math.round(durationMs / 60000); 
+
+            const reportData = {
+                username: currentHost.username,
+                waktuMulai: sessionStartTime.toISOString(),
+                waktuSelesai: endTime.toISOString(),
+                durasiMenit: durationMinutes,
+                shopeeQty: shopeeQty,
+                shopeeGmv: shopeeGmv,
+                tiktokQty: tiktokQty,
+                tiktokGmv: tiktokGmv,
+                totalGmv: shopeeGmv + tiktokGmv,
+                imageB64: currentBase64Image.split(',')[1] // Ambil string base64-nya saja tanpa prefix data:image
+            };
+
+            showLoading('Mengirim laporan ke server...');
+            
+            try {
+                await fetchFromGas('logEnd', reportData);
+                
+                // Sukses
+                clearInterval(liveTimerInterval);
+                sessionStartTime = null;
+                localStorage.removeItem(getStorageKey()); // Hapus state resume
+                
+                // Reset Form
+                document.getElementById('report-shopee-qty').value = '';
+                document.getElementById('report-shopee-gmv').value = '';
+                document.getElementById('report-tiktok-qty').value = '';
+                document.getElementById('report-tiktok-gmv').value = '';
+                clearImage();
+                
+                closeEndSessionModal();
+                setUIStateStandby();
+                
+                showToast('Laporan berhasil dikirim! Sesi Selesai.', 'success');
+            } catch (error) {
+                showToast(`Gagal mengirim laporan: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+
+        /**
+         * ==========================================
+         * DUMMY BACKEND SIMULATOR (Dihapus karena sudah pakai GAS Asli)
+         * ==========================================
+         */
+        // Fungsi simulateGasResponse telah dihapus agar aplikasi murni bergantung pada API Google Apps Script.
+
+    </script>
+</body>
+</html>
