@@ -96,7 +96,7 @@
                 <p class="text-slate-400 text-sm">Sistem Pencatat Sesi Host Live</p>
             </div>
 
-            <div class="w-full space-y-4 w-full">
+            <div class="w-full space-y-4">
                 <button onclick="prepareHostLogin()" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-violet-600/20 transition transform active:scale-95 flex items-center justify-center gap-3">
                     <i class="fa-solid fa-user-headset"></i> Login Host Live
                 </button>
@@ -372,8 +372,7 @@
          */
         
         // PENTING: Ganti URL di bawah dengan Web App URL dari Google Apps Script (Deploy as Web App)
-        // Di backend GAS, siapkan fungsi doPost(e) yang memproses action: 'getHosts', 'addHost', 'logStart', 'logEnd'.
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbznR5B5YmmAgsXziKfjOz0HJyOSsWKKZY3wqZNmDBUk-irupLAvqr1zufkuXHGcrvA/exec'; 
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwbeMm_32pb7Fm0YLvAksN0uJCj-RsdL7ynVU-pUOZBxig80Z6jNKN4ozxwLnOkMgA/exec'; 
         
         const ADMIN_PIN = '138080';
         
@@ -440,7 +439,6 @@
         // Fetch Wrapper untuk Google Apps Script
         // Menggunakan method POST dan plain/text untuk menghindari isu CORS preflight.
         async function fetchFromGas(action, payload) {
-            // Hapus simulasi karena GAS URL sudah di-set ke URL aktif
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
@@ -677,8 +675,7 @@
 
             showLoading('Mencatat waktu mulai...');
             try {
-                // 1. Catat ke server (Opsional, tapi bagus untuk log real-time)
-                // Jika ingin hanya catat di akhir, ini bisa di-skip. Kita asumsikan catat di awal untuk absensi masuk.
+                // 1. Catat ke server
                 const logData = {
                     username: currentHost.username,
                     nama: currentHost.nama,
@@ -897,15 +894,6 @@
                 hideLoading();
             }
         }
-
-
-        /**
-         * ==========================================
-         * DUMMY BACKEND SIMULATOR (Dihapus karena sudah pakai GAS Asli)
-         * ==========================================
-         */
-        // Fungsi simulateGasResponse telah dihapus agar aplikasi murni bergantung pada API Google Apps Script.
-
     </script>
 </body>
 </html>
