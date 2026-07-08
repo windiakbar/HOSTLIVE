@@ -258,78 +258,105 @@
             </div>
         </section>
 
-        <!-- 6. MODAL: END SESSION / LAPORAN -->
-        <div id="modal-end-session" class="fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-xl hidden flex-col transition-all duration-300 opacity-0 translate-y-10">
-            <div class="flex justify-between items-center p-4 border-b border-white/10 bg-slate-900 sticky top-0 z-50">
-                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-flag-checkered text-rose-400"></i> Laporan Sesi</h3>
-                <button onclick="closeEndSessionModal()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+        <!-- 6. MODAL: END SESSION / LAPORAN (MOBILE OPTIMIZED) -->
+        <div id="modal-end-session" class="fixed inset-0 z-50 bg-slate-900 flex flex-col transition-transform duration-300 translate-y-full hidden">
+            <!-- Header Modal -->
+            <div class="flex justify-between items-center p-5 border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+                <div>
+                    <h3 class="font-bold text-xl flex items-center gap-2 text-white"><i class="fa-solid fa-flag-checkered text-rose-500"></i> Laporan Akhir Sesi</h3>
+                    <p class="text-xs text-slate-400 mt-1">Isi performa live stream Anda</p>
+                </div>
+                <button onclick="closeEndSessionModal()" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center transition active:scale-90">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-4 pb-24 space-y-6">
+            <!-- Body Form -->
+            <div class="flex-1 overflow-y-auto p-5 pb-32 space-y-6 bg-slate-950">
                 <!-- Info Peringatan -->
-                <div class="bg-indigo-500/20 border border-indigo-500/30 rounded-xl p-3 flex gap-3 text-indigo-200 text-sm">
-                    <i class="fa-solid fa-circle-info mt-0.5"></i>
-                    <p>Isi data performa dengan jujur. Lampirkan screenshot atau foto dashboard seller (Shopee/TikTok) sebagai bukti validasi.</p>
+                <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-2xl p-4 flex gap-3 text-indigo-200">
+                    <i class="fa-solid fa-circle-info text-xl shrink-0 mt-0.5 text-indigo-400"></i>
+                    <p class="text-sm leading-relaxed">Isi data performa dengan jujur. Lampirkan screenshot dashboard seller (Shopee/TikTok) sebagai bukti validasi ke Admin.</p>
                 </div>
 
-                <!-- Input Shopee -->
-                <div class="glass-panel rounded-xl p-4 border-t-4 border-t-orange-500">
-                    <h4 class="font-bold text-orange-400 mb-3 flex items-center gap-2"><i class="fa-solid fa-bag-shopping"></i> SHOPEE</h4>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-xs text-slate-400 block mb-1">Produk Terjual (Qty)</label>
-                            <input type="number" id="report-shopee-qty" placeholder="0" class="w-full input-glass rounded-lg px-3 py-2 font-mono text-lg" inputmode="numeric">
+                <!-- Input Shopee Card -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-orange-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full pointer-events-none"></div>
+                    <h4 class="font-bold text-orange-400 mb-4 flex items-center gap-2 text-lg"><i class="fa-solid fa-bag-shopping"></i> SHOPEE</h4>
+                    
+                    <div class="space-y-4 relative z-10">
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Produk Terjual (Qty)</label>
+                            <input type="number" id="report-shopee-qty" placeholder="0" class="w-full bg-transparent text-white text-2xl font-bold font-mono focus:outline-none placeholder-slate-600" inputmode="numeric">
                         </div>
-                        <div>
-                            <label class="text-xs text-slate-400 block mb-1">Total GMV (Rp)</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">Rp</span>
-                                <input type="text" id="report-shopee-gmv" placeholder="0" class="w-full input-glass rounded-lg pl-10 pr-3 py-2 font-mono text-lg" oninput="formatRupiahInput(this)">
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5 focus-within:border-orange-500/50 transition-colors">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Total Pendapatan (GMV)</label>
+                            <div class="flex items-center">
+                                <span class="text-slate-500 font-bold text-xl mr-2">Rp</span>
+                                <input type="text" id="report-shopee-gmv" placeholder="0" class="w-full bg-transparent text-white text-2xl font-bold font-mono focus:outline-none placeholder-slate-600" oninput="formatRupiahInput(this)" inputmode="numeric">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Input TikTok -->
-                <div class="glass-panel rounded-xl p-4 border-t-4 border-t-slate-200">
-                    <h4 class="font-bold text-white mb-3 flex items-center gap-2"><i class="fa-brands fa-tiktok"></i> TIKTOK</h4>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-xs text-slate-400 block mb-1">Produk Terjual (Qty)</label>
-                            <input type="number" id="report-tiktok-qty" placeholder="0" class="w-full input-glass rounded-lg px-3 py-2 font-mono text-lg" inputmode="numeric">
+                <!-- Input TikTok Card -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-600 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-bl-full pointer-events-none"></div>
+                    <h4 class="font-bold text-white mb-4 flex items-center gap-2 text-lg"><i class="fa-brands fa-tiktok"></i> TIKTOK</h4>
+                    
+                    <div class="space-y-4 relative z-10">
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Produk Terjual (Qty)</label>
+                            <input type="number" id="report-tiktok-qty" placeholder="0" class="w-full bg-transparent text-white text-2xl font-bold font-mono focus:outline-none placeholder-slate-600" inputmode="numeric">
                         </div>
-                        <div>
-                            <label class="text-xs text-slate-400 block mb-1">Total GMV (Rp)</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">Rp</span>
-                                <input type="text" id="report-tiktok-gmv" placeholder="0" class="w-full input-glass rounded-lg pl-10 pr-3 py-2 font-mono text-lg" oninput="formatRupiahInput(this)">
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5 focus-within:border-slate-400 transition-colors">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Total Pendapatan (GMV)</label>
+                            <div class="flex items-center">
+                                <span class="text-slate-500 font-bold text-xl mr-2">Rp</span>
+                                <input type="text" id="report-tiktok-gmv" placeholder="0" class="w-full bg-transparent text-white text-2xl font-bold font-mono focus:outline-none placeholder-slate-600" oninput="formatRupiahInput(this)" inputmode="numeric">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bukti Foto/Screenshot -->
-                <div class="glass-panel rounded-xl p-4 space-y-3">
-                    <h4 class="font-bold text-slate-200 flex items-center gap-2"><i class="fa-solid fa-camera text-violet-400"></i> Bukti Screenshot / Kamera</h4>
+                <!-- Bukti Foto/Screenshot Card -->
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-lg">
+                    <h4 class="font-bold text-slate-200 mb-1 flex items-center gap-2"><i class="fa-solid fa-camera text-violet-400"></i> Bukti Screenshot</h4>
+                    <p class="text-xs text-slate-400 mb-4">Wajib melampirkan screenshot dashboard</p>
                     
                     <input type="file" id="report-image" accept="image/*" capture="environment" class="hidden" onchange="previewImage(event)">
                     
-                    <div id="image-preview-container" class="hidden relative w-full h-40 rounded-lg overflow-hidden border border-white/20 bg-slate-800">
+                    <!-- Area Preview -->
+                    <div id="image-preview-container" class="hidden relative w-full h-48 rounded-xl overflow-hidden border-2 border-violet-500/50 bg-slate-950 shadow-inner group">
                         <img id="image-preview" class="w-full h-full object-cover" src="" alt="Preview">
-                        <button onclick="clearImage()" class="absolute top-2 right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash text-sm"></i></button>
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button onclick="clearImage()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 shadow-lg transform active:scale-95 transition">
+                                 <i class="fa-solid fa-trash"></i> Hapus Foto
+                             </button>
+                        </div>
+                        <!-- Delete button for mobile (always visible on corner) -->
+                        <button onclick="clearImage()" class="absolute top-2 right-2 w-10 h-10 bg-rose-600/90 backdrop-blur-sm text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition md:hidden">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
                     </div>
 
-                    <button id="btn-trigger-camera" onclick="document.getElementById('report-image').click()" class="w-full bg-slate-700 hover:bg-slate-600 border border-dashed border-slate-400 text-slate-300 py-4 rounded-xl flex flex-col items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
-                        <span class="text-sm font-medium">Ambil Foto / Upload Screenshot</span>
+                    <!-- Area Upload -->
+                    <button id="btn-trigger-camera" onclick="document.getElementById('report-image').click()" class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-700 border-2 border-dashed border-slate-600 text-slate-300 py-8 rounded-xl flex flex-col items-center justify-center gap-3 transition transform active:scale-[0.98]">
+                        <div class="w-14 h-14 bg-slate-900 rounded-full flex items-center justify-center border border-slate-700 shadow-inner">
+                            <i class="fa-solid fa-image text-2xl text-violet-400"></i>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-sm font-bold text-white mb-1">Ketuk untuk Upload Foto</span>
+                            <span class="block text-xs text-slate-400">Kamera atau Galeri HP Anda</span>
+                        </div>
                     </button>
                 </div>
             </div>
 
             <!-- Submit Laporan Footer -->
-            <div class="p-4 bg-slate-900 border-t border-white/10 pb-8 sticky bottom-0 z-50">
-                <button onclick="submitSessionReport()" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] active:scale-95 transition-transform flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-paper-plane"></i> Kirim Laporan & Akhiri Sesi
+            <div class="p-5 bg-slate-900 border-t border-white/10 pb-8 absolute bottom-0 left-0 w-full z-50">
+                <button onclick="submitSessionReport()" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-extrabold py-4 text-lg rounded-xl shadow-[0_10px_20px_rgba(139,92,246,0.3)] active:scale-[0.98] transition-all flex justify-center items-center gap-3">
+                    <i class="fa-solid fa-paper-plane text-xl"></i> KIRIM & AKHIRI SESI
                 </button>
             </div>
         </div>
@@ -753,15 +780,16 @@
         function openEndSessionModal() {
             const modal = document.getElementById('modal-end-session');
             modal.classList.remove('hidden');
-            // Sedikit delay untuk trigger animasi transisi
+            // Sedikit delay untuk memicu animasi transisi (slide up)
             setTimeout(() => {
-                modal.classList.remove('opacity-0', 'translate-y-10');
+                modal.classList.remove('translate-y-full');
             }, 10);
         }
 
         function closeEndSessionModal() {
             const modal = document.getElementById('modal-end-session');
-            modal.classList.add('opacity-0', 'translate-y-10');
+            modal.classList.add('translate-y-full');
+            // Tunggu animasi selesai baru sembunyikan elemennya
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 300);
