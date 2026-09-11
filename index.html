@@ -83,6 +83,23 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 w-[90%] max-w-md pointer-events-none"></div>
 
+    <!-- Upload Progress Overlay (Loading Bar Popup) -->
+    <div id="upload-progress-overlay" class="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+        <div class="w-4/5 max-w-sm bg-slate-800 border border-slate-700 rounded-3xl p-7 shadow-2xl flex flex-col items-center text-center">
+            <i class="fa-solid fa-cloud-arrow-up text-5xl text-violet-500 mb-4 animate-bounce"></i>
+            <h3 class="text-white font-bold text-xl mb-1">Mengirim Laporan</h3>
+            <p id="upload-progress-text" class="text-slate-400 text-sm mb-6">Menyiapkan data...</p>
+
+            <!-- Progress Bar Container -->
+            <div class="w-full bg-slate-950 rounded-full h-4 mb-3 overflow-hidden border border-slate-700 shadow-inner">
+                <div id="upload-progress-bar" class="bg-gradient-to-r from-violet-600 to-indigo-500 h-4 rounded-full transition-all duration-300 ease-out relative" style="width: 0%">
+                    <div class="absolute top-0 left-0 w-full h-full bg-white/20 animate-pulse"></div>
+                </div>
+            </div>
+            <p id="upload-percent" class="text-violet-400 font-extrabold text-2xl tabular-nums">0%</p>
+        </div>
+    </div>
+
     <!-- Main Mobile Container -->
     <main class="w-full max-w-md mx-auto min-h-screen relative p-4 flex flex-col">
         
@@ -381,6 +398,7 @@
         let liveTimerInterval = null;
         let sessionStartTime = null; // Date object
         let currentBase64Image = null;
+        let uploadSimulationInterval = null; // State untuk animasi loading bar
 
         /**
          * ==========================================
@@ -408,6 +426,69 @@
         }
         function hideLoading() {
             document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // Logic untuk Loading Bar Popup
+        function simulateUploadProgress() {
+            const overlay = document.getElementById('upload-progress-overlay');
+            const bar = document.getElementById('upload-progress-bar');
+            const text = document.getElementById('upload-progress-text');
+            const pct = document.getElementById('upload-percent');
+            let currentProgress = 0;
+
+            overlay.classList.remove('hidden');
+            // Sedikit delay agar transisi opacity terlihat (fade-in)
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+
+            uploadSimulationInterval = setInterval(() => {
+                if (currentProgress < 90) {
+                    // Kecepatan progress melambat seiring bertambahnya persentase
+                    let increment = Math.random() * 15;
+                    if (currentProgress > 40) increment = Math.random() * 8;
+                    if (currentProgress > 75) increment = Math.random() * 3;
+
+                    currentProgress += increment;
+                    if (currentProgress > 90) currentProgress = 90; // Berhenti di 90% sampai fetch selesai
+
+                    let displayPct = Math.floor(currentProgress);
+                    bar.style.width = displayPct + '%';
+                    pct.innerText = displayPct + '%';
+
+                    // Ubah teks berdasarkan tahapan progress
+                    if (displayPct < 30) text.innerText = "Mengemas payload data...";
+                    else if (displayPct < 60) text.innerText = "Menghubungkan ke server...";
+                    else text.innerText = "Mengunggah gambar dan laporan...";
+                }
+            }, 600);
+        }
+
+        async function completeUploadProgress() {
+            clearInterval(uploadSimulationInterval);
+            document.getElementById('upload-progress-bar').style.width = '100%';
+            document.getElementById('upload-percent').innerText = '100%';
+            document.getElementById('upload-progress-text').innerText = "Berhasil dikirim!";
+            
+            // Tunggu sebentar agar user bisa melihat status 100% sebelum ditutup
+            return new Promise(resolve => setTimeout(() => {
+                document.getElementById('upload-progress-overlay').classList.add('opacity-0');
+                setTimeout(() => {
+                    document.getElementById('upload-progress-overlay').classList.add('hidden');
+                    // Reset UI bar untuk penggunaan di masa depan
+                    document.getElementById('upload-progress-bar').style.width = '0%';
+                    document.getElementById('upload-percent').innerText = '0%';
+                    resolve();
+                }, 300); // durasi fade-out
+            }, 800));
+        }
+
+        function resetUploadProgress() {
+            clearInterval(uploadSimulationInterval);
+            document.getElementById('upload-progress-overlay').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('upload-progress-overlay').classList.add('hidden');
+                document.getElementById('upload-progress-bar').style.width = '0%';
+                document.getElementById('upload-percent').innerText = '0%';
+            }, 300);
         }
 
         // Toast Notification System (Bisa ditumpuk)
@@ -867,11 +948,15 @@
                 imageB64: currentBase64Image.split(',')[1] // Ambil string base64-nya saja tanpa prefix data:image
             };
 
-            showLoading('Mengirim laporan ke server...');
+            // Mulai tampilkan dan jalankan animasi Loading Bar
+            simulateUploadProgress();
             
             try {
                 await fetchFromGas('logEnd', reportData);
                 
+                // Ketika fetch sukses, penuhkan bar ke 100% lalu sembunyikan
+                await completeUploadProgress();
+
                 // Sukses
                 clearInterval(liveTimerInterval);
                 sessionStartTime = null;
@@ -889,9 +974,9 @@
                 
                 showToast('Laporan berhasil dikirim! Sesi Selesai.', 'success');
             } catch (error) {
+                // Sembunyikan bar jika terjadi error
+                resetUploadProgress();
                 showToast(`Gagal mengirim laporan: ${error.message}`, 'error');
-            } finally {
-                hideLoading();
             }
         }
     </script>
